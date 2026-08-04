@@ -21,7 +21,7 @@ This project stands as a testament to the power of **AI-assisted engineering**, 
 ## How Ben Works
 
 **Ben** acts as a partner rather than just a tool. Operating within the OpenClaw workspace, Ben follows a rigorous development lifecycle:
-1. **Roadmapping:** Every feature starts with a clear plan and human approval.
+1. **Roadmaping:** Every feature starts with a clear plan and human approval.
 2. **Iterative Refinement:** Ben continuously polishes UI/UX based on user feedback.
 3. **Environment Management:** From setting up React/Vite environments to managing environment variables and Git version control, Ben operates as a full-stack developer agent.
 4. **Resilience:** Ben actively debugs API interactions and handles edge cases, ensuring a robust user experience.
