@@ -6,6 +6,8 @@ import { ArticleMeta } from './ArticleCard';
 // Live Feed ki pehli story ko bara "Top Story" card banate hain
 export default function FeaturedCard({ article, saved, onToggleSave, onOpen }) {
   return (
+
+    
     <motion.article initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative mb-6 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
       <button onClick={onOpen} className="w-full text-left grid md:grid-cols-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-3xl">
         <ArticleImage src={article.image} className="h-56 md:h-full md:min-h-80 w-full" />
