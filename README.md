@@ -48,7 +48,7 @@ src/
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Kashif0540/ai-powered-news-agent
+   git clone https://github.com/Kashif0540/Tech-Nexus_ai-powered-news-agent
    ```
 2. **Install dependencies:**
    ```bash
