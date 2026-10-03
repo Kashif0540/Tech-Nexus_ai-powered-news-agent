@@ -1,99 +1,154 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, X, Newspaper, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { Loader2, Newspaper, AlertTriangle, RefreshCw, Bookmark } from 'lucide-react';
+import Header from './components/Header';
+import Toolbar from './components/Toolbar';
+import ArticleCard from './components/ArticleCard';
+import ArticleModal from './components/ArticleModal';
+import FeaturedCard from './components/FeaturedCard';
+import BackToTop from './components/BackToTop';
+import Footer from './components/Footer';
+import { SkeletonGrid, StatusMessage, primaryButton, secondaryButton } from './components/Feedback';
+import { useNews } from './hooks/useNews';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { TOPICS } from './lib/newsApi';
+import { editorialPicks } from './data/editorialPicks';
 
-const editorialPicks = [
-  { title: "The Future of RAG", desc: "How RAG is changing enterprise search.", details: "Retrieval-Augmented Generation is revolutionizing how LLMs access private data. Instead of relying only on training, they query vector databases for context. This ensures accuracy and real-time relevance, making it an essential tool for modern AI infrastructure.", image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=400" },
-  { title: "Agentic AI Revolution", desc: "Why agents are the new employees.", details: "Agentic AI is moving beyond chat. These agents perform multi-step planning, use external tools, and handle complex workflows like coding or project management autonomously, drastically increasing human productivity.", image: "https://images.unsplash.com/photo-1675271512404-5f503c26027a?auto=format&fit=crop&q=80&w=400" },
-  { title: "The Power of CCN", desc: "Reimagining network architectures.", details: "Content-Centric Networking changes the internet backbone from address-based to content-based. This allows for native caching, improved latency, and higher security, perfect for the future of streaming and real-time AI networks.", image: "https://images.unsplash.com/photo-1558494949-ef010bbbb317?auto=format&fit=crop&q=80&w=400" }
-];
+const getSystemTheme = () => window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+function SectionHeading({ title, subtitle }) {
+  return (
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+      {subtitle && <p className="text-slate-500 dark:text-slate-400 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
 
 function App() {
-  const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('live');
+  const [topicId, setTopicId] = useState(TOPICS[0].id);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('publishedAt');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [saved, setSaved] = useLocalStorage('technexus:saved', []);
+  const [theme, setTheme] = useLocalStorage('technexus:theme', getSystemTheme);
+
+  // Search active ho to topic ki jagah search query use hoti hai
+  const query = search || TOPICS.find(t => t.id === topicId).query;
+  const news = useNews(query, sortBy);
 
   useEffect(() => {
-    const fetchNews = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const apiKey = import.meta.env.VITE_NEWS_API_KEY;
-        if (!apiKey) throw new Error("News API key missing. Add VITE_NEWS_API_KEY to your .env file.");
-        const response = await fetch(`https://newsapi.org/v2/everything?q=artificial+intelligence&pageSize=20&language=en&apiKey=${apiKey}`);
-        const data = await response.json();
-        // NewsAPI errors (invalid key, rate limit, non-localhost on free plan) come back as status: "error"
-        if (!response.ok || data.status === 'error') throw new Error(data.message || `Request failed (${response.status})`);
-        // Sirf wahi articles filter kr rhe hain jinki image aur content valid hai
-        const validArticles = (data.articles || []).filter(a => a.urlToImage && a.content);
-        setNews(validArticles);
-      } catch (err) {
-        console.error("News Fetch Error:", err);
-        setError(err instanceof TypeError ? "Couldn't reach the news service. Check your internet connection." : err.message);
-      } finally { setLoading(false); }
-    };
-    fetchNews();
-  }, [retryCount]);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
-  const isLive = activeTab === 'live';
+  const savedIds = useMemo(() => new Set(saved.map(a => a.id)), [saved]);
+  const toggleSave = useCallback(article => {
+    setSaved(prev => prev.some(a => a.id === article.id) ? prev.filter(a => a.id !== article.id) : [article, ...prev]);
+  }, [setSaved]);
+  const closeModal = useCallback(() => setSelectedItem(null), []);
+
+  const changeTopic = id => {
+    setTopicId(id);
+    setSearch('');
+    setSearchInput('');
+  };
+  const submitSearch = () => {
+    const term = searchInput.trim();
+    if (!term) return;
+    setSearch(term);
+    setTopicId(null);
+  };
+  const clearSearch = () => {
+    if (search) changeTopic(TOPICS[0].id);
+    else setSearchInput('');
+  };
+
+  const renderGrid = items => (
+    <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map(item => (
+        <ArticleCard key={item.id} article={item} saved={savedIds.has(item.id)} onToggleSave={() => toggleSave(item)} onOpen={() => setSelectedItem(item)} />
+      ))}
+    </section>
+  );
+
+  const renderLiveFeed = () => {
+    if (news.loading) return <SkeletonGrid />;
+    if (news.error) {
+      return (
+        <StatusMessage icon={AlertTriangle} tone="error" title="Couldn't load the live feed" message={news.error}>
+          <button onClick={news.refresh} className={primaryButton}><RefreshCw size={16} /> Try again</button>
+          <button onClick={() => setActiveTab('editor')} className={secondaryButton}>Editor's Picks</button>
+        </StatusMessage>
+      );
+    }
+    if (news.articles.length === 0) {
+      return (
+        <StatusMessage icon={Newspaper} title={search ? `No results for “${search}”` : 'No stories right now'} message={search ? 'Try a different keyword or browse a topic instead.' : 'Check back soon for the latest AI news.'}>
+          {search ? <button onClick={clearSearch} className={secondaryButton}>Clear search</button> : <button onClick={news.refresh} className={primaryButton}><RefreshCw size={16} /> Refresh</button>}
+        </StatusMessage>
+      );
+    }
+    return (
+      <>
+        {news.articles.length > 3 ? (
+          <>
+            <FeaturedCard article={news.articles[0]} saved={savedIds.has(news.articles[0].id)} onToggleSave={() => toggleSave(news.articles[0])} onOpen={() => setSelectedItem(news.articles[0])} />
+            {renderGrid(news.articles.slice(1))}
+          </>
+        ) : renderGrid(news.articles)}
+        <div className="mt-10 text-center">
+          {news.hasMore ? (
+            <button onClick={news.loadMore} disabled={news.loadingMore} className={`${primaryButton} mx-auto`}>
+              {news.loadingMore ? <><Loader2 size={16} className="animate-spin" /> Loading…</> : 'Load more stories'}
+            </button>
+          ) : (
+            <p className="text-sm text-slate-400">You're all caught up.</p>
+          )}
+          {news.loadMoreError && <p role="alert" className="text-sm text-red-500 mt-3">{news.loadMoreError}</p>}
+        </div>
+      </>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <header className="bg-white border-b sticky top-0 z-10 px-8 py-4 flex justify-between items-center shadow-sm">
-        <h1 className="text-2xl font-black text-emerald-800 tracking-tighter">TECH NEXUS</h1>
-        <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
-          <button onClick={() => setActiveTab('live')} className={`px-4 py-1.5 rounded-md font-bold ${activeTab === 'live' ? 'bg-white shadow text-emerald-800' : 'text-slate-500'}`}>Live Feed</button>
-          <button onClick={() => setActiveTab('editor')} className={`px-4 py-1.5 rounded-md font-bold ${activeTab === 'editor' ? 'bg-white shadow text-emerald-800' : 'text-slate-500'}`}>Editor's Picks</button>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors">
+      <Header activeTab={activeTab} onTabChange={setActiveTab} savedCount={saved.length} theme={theme} onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
 
-      <main className="max-w-6xl mx-auto p-8">
-        {isLive && loading ? <Loader2 className="animate-spin mx-auto mt-20 text-emerald-600" size={40} /> : isLive && error ? (
-          <div className="max-w-md mx-auto mt-20 bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm">
-            <AlertTriangle className="mx-auto mb-4 text-red-500" size={40} />
-            <h2 className="text-xl font-bold mb-2">Couldn't load the live feed</h2>
-            <p className="text-slate-500 text-sm mb-6">{error}</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => setRetryCount(c => c + 1)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold"><RefreshCw size={16} /> Try again</button>
-              <button onClick={() => setActiveTab('editor')} className="px-5 py-2 rounded-lg font-bold text-emerald-800 bg-slate-100">Editor's Picks</button>
-            </div>
-          </div>
-        ) : isLive && news.length === 0 ? (
-          <div className="max-w-md mx-auto mt-20 text-center text-slate-500">
-            <Newspaper className="mx-auto mb-4 text-slate-400" size={40} />
-            <p className="mb-6">No AI stories right now. Check back soon.</p>
-            <button onClick={() => setRetryCount(c => c + 1)} className="flex items-center gap-2 mx-auto bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold"><RefreshCw size={16} /> Refresh</button>
-          </div>
-        ) : (
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(isLive ? news : editorialPicks).map((item, i) => (
-              <motion.div key={i} whileHover={{ y: -5 }} onClick={() => setSelectedItem(item)} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer">
-                <img src={item.urlToImage || item.image} className="h-48 w-full object-cover" />
-                <div className="p-5">
-                  <h3 className="font-bold text-lg mb-2 line-clamp-2">{item.title}</h3>
-                  <p className="text-slate-500 text-sm mb-4 line-clamp-3">{item.description || item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </section>
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8">
+        {activeTab === 'live' && (
+          <>
+            <Toolbar topicId={topicId} onTopicChange={changeTopic} searchInput={searchInput} onSearchInputChange={setSearchInput} onSearchSubmit={submitSearch} onSearchClear={clearSearch} sortBy={sortBy} onSortChange={setSortBy} fetchedAt={news.fetchedAt} onRefresh={news.refresh} loading={news.loading} />
+            {search && !news.loading && <p className="text-sm text-slate-500 dark:text-slate-400 -mt-4 mb-6">Showing results for <span className="font-semibold text-slate-800 dark:text-slate-200">“{search}”</span></p>}
+            {renderLiveFeed()}
+          </>
+        )}
+
+        {activeTab === 'editor' && (
+          <>
+            <SectionHeading title="Editor's Picks" subtitle="In-depth explainers on the ideas shaping AI, curated by the Tech Nexus team." />
+            {renderGrid(editorialPicks)}
+          </>
+        )}
+
+        {activeTab === 'saved' && (
+          <>
+            <SectionHeading title="Saved Articles" subtitle="Stories you've bookmarked. Saved on this device." />
+            {saved.length === 0 ? (
+              <StatusMessage icon={Bookmark} title="No saved articles yet" message="Tap the bookmark icon on any story to read it later.">
+                <button onClick={() => setActiveTab('live')} className={primaryButton}>Browse the live feed</button>
+              </StatusMessage>
+            ) : renderGrid(saved)}
+          </>
         )}
       </main>
 
+      <Footer />
+      <BackToTop />
+
       <AnimatePresence>
-        {selectedItem && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 z-20 flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white p-8 rounded-3xl max-w-lg w-full relative overflow-y-auto max-h-[80vh]">
-              <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 bg-slate-100 p-2 rounded-full"><X size={18} /></button>
-              <h2 className="text-2xl font-bold mb-4 text-emerald-800">{selectedItem.title}</h2>
-              <img src={selectedItem.urlToImage || selectedItem.image} className="w-full h-48 object-cover rounded-2xl mb-4" />
-              <p className="text-slate-700 leading-relaxed mb-6">{selectedItem.details || selectedItem.content || selectedItem.description}</p>
-              {selectedItem.url && <a href={selectedItem.url} target="_blank" className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold block text-center">Read Original</a>}
-            </motion.div>
-          </motion.div>
-        )}
+        {selectedItem && <ArticleModal article={selectedItem} saved={savedIds.has(selectedItem.id)} onToggleSave={() => toggleSave(selectedItem)} onClose={closeModal} />}
       </AnimatePresence>
     </div>
   );

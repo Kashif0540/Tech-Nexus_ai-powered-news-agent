@@ -12,11 +12,29 @@ This project stands as a testament to the power of **AI-assisted engineering**, 
 
 ## Key Features
 
-- **Live AI Feed:** Real-time news aggregation powered by the [NewsAPI.org](https://newsapi.org) API.
+- **Live AI Feed:** Real-time news aggregation powered by the [NewsAPI.org](https://newsapi.org) API, with "Load more" pagination.
+- **Top Story Layout:** The leading story is highlighted in a large featured card above the news grid.
+- **Search & Topics:** Keyword search (press `/` to jump to it) plus one-click topic filters (LLMs, Machine Learning, Robotics, AI Policy, Startups). Results match on headlines and summaries to keep the feed on-topic.
+- **Sorting:** Order stories by latest, most relevant, or most popular.
+- **Saved Articles:** Bookmark any story and read it later from the Saved tab (persisted in the browser).
+- **Dark Mode:** Light and dark themes that follow your system preference, with no flash on page load.
+- **Rich Article Details:** Source, author, publish time, and estimated reading time on every story, with a detail view that supports copy-link and keyboard navigation (Esc to close).
 - **Editorial Curated Picks:** A dedicated section for human-curated, deep-dive tech insights.
-- **Interactive UI:** A modern, professional interface featuring a responsive news grid and detailed article modals.
+- **Polished Loading & Error States:** Skeleton loaders, image fallbacks, and clear error messages with retry.
+- **API-Friendly Caching:** Responses are cached for 10 minutes per session to stay within NewsAPI's free-tier limits.
+- **Professional Finish:** Branded logo and favicon, social-sharing meta tags, back-to-top button, and a credits footer.
 - **Dynamic Responsiveness:** Fully adaptive design using Tailwind CSS for an optimal experience across devices.
-- **Professional Aesthetics:** An emerald-and-slate design language tailored for a news-centric environment.
+
+## Project Structure
+
+```
+src/
+├── App.jsx              # Page layout, tabs, and app state
+├── components/          # Header, Toolbar, ArticleCard, ArticleModal, Footer, loading/error states
+├── hooks/               # useNews (fetching + pagination), useLocalStorage
+├── lib/                 # NewsAPI client with caching, date/reading-time helpers
+└── data/                # Editorial picks content
+```
 
 ## How Ben Works
 

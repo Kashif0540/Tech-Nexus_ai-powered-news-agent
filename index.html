@@ -4,7 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>openclaw</title>
+    <meta name="description" content="Tech Nexus: live AI and technology news, curated explainers, and saved reading in one place." />
+    <meta name="author" content="M. Kashif" />
+    <meta name="theme-color" content="#059669" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tech Nexus | AI News" />
+    <meta property="og:description" content="Live AI and technology news, curated explainers, and saved reading in one place. Designed and developed by M. Kashif." />
+    <title>Tech Nexus | AI News</title>
+    <script>
+      // React load hone se pehle theme set karte hain taake white flash na ho
+      try {
+        const theme = JSON.parse(localStorage.getItem('technexus:theme'));
+        if (theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

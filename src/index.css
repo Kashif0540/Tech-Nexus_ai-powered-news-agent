@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Dark mode <html class="dark"> se control hota hai (theme toggle) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 body {
-  @apply bg-slate-900 text-white font-sans;
+  @apply bg-slate-50 text-slate-900 font-sans dark:bg-slate-950 dark:text-slate-100;
 }
