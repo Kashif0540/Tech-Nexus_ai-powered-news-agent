@@ -12,9 +12,9 @@ This project stands as a testament to the power of **AI-assisted engineering**, 
 
 ## Key Features
 
-- **Live AI Feed:** Real-time news aggregation powered by the Hacker News (Algolia) API.
+- **Live AI Feed:** Real-time news aggregation powered by the [NewsAPI.org](https://newsapi.org) API.
 - **Editorial Curated Picks:** A dedicated section for human-curated, deep-dive tech insights.
-- **Interactive UI:** A modern, professional interface featuring a search-optimized news grid and detailed article modals.
+- **Interactive UI:** A modern, professional interface featuring a responsive news grid and detailed article modals.
 - **Dynamic Responsiveness:** Fully adaptive design using Tailwind CSS for an optimal experience across devices.
 - **Professional Aesthetics:** An emerald-and-slate design language tailored for a news-centric environment.
 
@@ -36,7 +36,12 @@ This project stands as a testament to the power of **AI-assisted engineering**, 
    ```bash
    npm install
    ```
-3. **Run the development server:**
+3. **Add your NewsAPI key:** create a `.env` file in the project root with:
+   ```bash
+   VITE_NEWS_API_KEY=your_newsapi_key_here
+   ```
+   Get a free key at [newsapi.org](https://newsapi.org/register). Note: the free plan only allows requests from `localhost`.
+4. **Run the development server:**
    ```bash
    npm run dev
    ```
