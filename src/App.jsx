@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, X, Newspaper } from 'lucide-react';
+import { Loader2, X, Newspaper, AlertTriangle, RefreshCw } from 'lucide-react';
 
 const editorialPicks = [
   { title: "The Future of RAG", desc: "How RAG is changing enterprise search.", details: "Retrieval-Augmented Generation is revolutionizing how LLMs access private data. Instead of relying only on training, they query vector databases for context. This ensures accuracy and real-time relevance, making it an essential tool for modern AI infrastructure.", image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=400" },
@@ -11,22 +11,34 @@ const editorialPicks = [
 function App() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('live');
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     const fetchNews = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const apiKey = import.meta.env.VITE_NEWS_API_KEY;
+        if (!apiKey) throw new Error("News API key missing. Add VITE_NEWS_API_KEY to your .env file.");
         const response = await fetch(`https://newsapi.org/v2/everything?q=artificial+intelligence&pageSize=20&language=en&apiKey=${apiKey}`);
         const data = await response.json();
+        // NewsAPI errors (invalid key, rate limit, non-localhost on free plan) come back as status: "error"
+        if (!response.ok || data.status === 'error') throw new Error(data.message || `Request failed (${response.status})`);
         // Sirf wahi articles filter kr rhe hain jinki image aur content valid hai
         const validArticles = (data.articles || []).filter(a => a.urlToImage && a.content);
         setNews(validArticles);
-      } catch (err) { console.error("News Fetch Error:", err); } finally { setLoading(false); }
+      } catch (err) {
+        console.error("News Fetch Error:", err);
+        setError(err instanceof TypeError ? "Couldn't reach the news service. Check your internet connection." : err.message);
+      } finally { setLoading(false); }
     };
     fetchNews();
-  }, []);
+  }, [retryCount]);
+
+  const isLive = activeTab === 'live';
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -39,9 +51,25 @@ function App() {
       </header>
 
       <main className="max-w-6xl mx-auto p-8">
-        {loading ? <Loader2 className="animate-spin mx-auto mt-20 text-emerald-600" size={40} /> : (
+        {isLive && loading ? <Loader2 className="animate-spin mx-auto mt-20 text-emerald-600" size={40} /> : isLive && error ? (
+          <div className="max-w-md mx-auto mt-20 bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm">
+            <AlertTriangle className="mx-auto mb-4 text-red-500" size={40} />
+            <h2 className="text-xl font-bold mb-2">Couldn't load the live feed</h2>
+            <p className="text-slate-500 text-sm mb-6">{error}</p>
+            <div className="flex gap-3 justify-center">
+              <button onClick={() => setRetryCount(c => c + 1)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold"><RefreshCw size={16} /> Try again</button>
+              <button onClick={() => setActiveTab('editor')} className="px-5 py-2 rounded-lg font-bold text-emerald-800 bg-slate-100">Editor's Picks</button>
+            </div>
+          </div>
+        ) : isLive && news.length === 0 ? (
+          <div className="max-w-md mx-auto mt-20 text-center text-slate-500">
+            <Newspaper className="mx-auto mb-4 text-slate-400" size={40} />
+            <p className="mb-6">No AI stories right now. Check back soon.</p>
+            <button onClick={() => setRetryCount(c => c + 1)} className="flex items-center gap-2 mx-auto bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold"><RefreshCw size={16} /> Refresh</button>
+          </div>
+        ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(activeTab === 'live' ? news : editorialPicks).map((item, i) => (
+            {(isLive ? news : editorialPicks).map((item, i) => (
               <motion.div key={i} whileHover={{ y: -5 }} onClick={() => setSelectedItem(item)} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer">
                 <img src={item.urlToImage || item.image} className="h-48 w-full object-cover" />
                 <div className="p-5">
