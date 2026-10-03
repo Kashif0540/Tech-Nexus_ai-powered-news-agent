@@ -21,6 +21,11 @@ export default function ArticleModal({ article, saved, onToggleSave, onClose }) 
     };
   }, [onClose]);
 
+  // NewsAPI mein description aur content aksar ek hi text se shuru hote hain; aisa ho to sirf lamba wala dikhao
+  const normalize = text => (text || '').replace(/\s+/g, ' ').trim().slice(0, 60).toLowerCase();
+  const overlaps = !article.description || !article.content || normalize(article.description) === normalize(article.content);
+  const longer = (article.content || '').length >= (article.description || '').length ? article.content : article.description;
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(article.url);
@@ -43,8 +48,14 @@ export default function ArticleModal({ article, saved, onToggleSave, onClose }) 
         </p>
 
         <ArticleImage src={article.image} className="w-full h-56 sm:h-64 rounded-2xl mb-5" />
-        {article.description && article.description !== article.content && <p className="text-lg font-medium text-slate-800 dark:text-slate-200 leading-relaxed mb-4">{article.description}</p>}
-        <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-6">{article.content}</p>
+        {overlaps ? (
+          <p className="text-lg text-slate-700 dark:text-slate-300 leading-relaxed mb-6">{longer}</p>
+        ) : (
+          <>
+            {article.description && <p className="text-lg font-medium text-slate-800 dark:text-slate-200 leading-relaxed mb-4">{article.description}</p>}
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-6">{article.content}</p>
+          </>
+        )}
         {article.url && <p className="text-xs text-slate-400 mb-6">This is a preview. The full story is available on {article.source}.</p>}
 
         <div className="flex flex-wrap gap-3">
